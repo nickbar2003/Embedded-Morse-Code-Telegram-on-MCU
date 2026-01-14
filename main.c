@@ -2,21 +2,70 @@
 #include <avr/io.h>
 #include <util/delay.h>
 
-#define F_CPU 16000000UL
+#define F_CPU 16000000 // System oscillator clock frequency in MHz
+#define BAUD 9600 // Bits per second for Tx and Rx
 
-// USART video: https://www.youtube.com/watch?v=KnyyQujvcBo&t=1423s
-// I copied this code for serial communcation from the video linked above
+// My microcontroller board has an ATmega328P microcontroller //
+// For all w/r operations I am referencing the ATmega328P data sheet // 
 
-void config_USART0();
-void serial_write(uint8_t output);
+// Documentation //
+// ATmega328P datasheet: https://ww1.microchip.com/downloads/en/DeviceDoc/Atmel-7810-Automotive-Microcontrollers-ATmega328P_Datasheet.pdf
+// Arduion UNO R3 pinout diagram: https://docs.arduino.cc/resources/pinouts/A000066-full-pinout.pdf
+
 
 int main(void)
 {
 
-    uint8_t fresh_click = 1; // 1 for fresh, 0 for stale
+
+    // // //  USART0 CONFIGURATION // // //
     
 
-    // Port Direction Register 0 = input; 1 = output
+    /* 
+    
+    Desired Settings for USART0 :
+
+    In USCR0C (register):
+        - USART mode = Asynchronous
+        - Parity mode = disabled
+        - Stop bit select = 1 stop bit
+        - Data bit size = 8 bits
+        - Baud rate = 9600
+
+    In USCR0B (Register):
+        Tx Enable = 1
+
+    */
+
+    // USART mode = 00 = Async mode
+    UCSR0C = UCSR0C & ~(1 << UMSEL00); // Set bit 6 = 0
+    UCSR0C = UCSR0C & ~(1 << UMSEL01); // Set bit 7 = 0
+
+
+    // Parity mode = 00 = disabled
+    UCSR0C = UCSR0C & ~(1 << UPM00); // Set bit 4 = 0
+    UCSR0C = UCSR0C & ~(1 << UPM01); // Set bit 5 = 0
+    
+    // Stop bit select = 0 = one stop bit
+    UCSR0C = UCSR0C & ~(1 << USBS0); // Set bit 3 = 0
+
+    // For data size setting 11 = 8 data bits
+    UCSR0C = UCSR0C | (1 << UCSZ01); // Set bit 2 = 1
+    UCSR0C = UCSR0C | (1 << UCSZ00); // Set bit 1 = 1
+
+    // Set USART Baud Rate Register for desired baud rate of 9600 to 103
+    // For equation info about this calculation see ATmega328P datasheet pg. 146
+    UBRR0L = 103; // UBBR0n = 103 = (fosc) / (16 * BAUD)
+
+    // Enable transmission 
+    UCSR0B = UCSR0B | (1 << TXEN0);
+
+
+
+    // // // PORT DIRECTION CONFIGURATION // // //
+
+    
+    // Port Direction Register 0 = input pin; 1 = output pin
+
     // Set PORTB4 to output
     DDRB = DDRB | (1 << DDB4);
 
@@ -26,47 +75,67 @@ int main(void)
     // Set PORTD4 is input by default
     DDRD = DDRD & ~(1 << DDD4);
 
+    /*
+    Port to hardware correspondance:
+    (See Adrunio Uno R3 pinout diagram linked above)
 
-    UCSR0C = (2 << UPM00) | (3 << UCSZ00); // Even parity, 8 data bits, 1 stop bit
-    UBRR0L = 103; // sets baud rate to about 9600
-    UCSR0B = (1 << TXEN0); // Enables Transmission
+    NAME   | PCB Pin NAME   | Hardware Function
+    --------------------------------------------
+    PORTB4 | Digital Pin 12 | Powering a Red LED
+    ---------------------------------------------
+    PORTB3 | Digital Pin 11 | Powering a Blue LED
+    ---------------------------------------------
+    PORTD4 | Digital Pin 4 | Recieving input from button
+    
+    */
 
+
+    uint8_t fresh_click = 1; // 1 for fresh, 0 for stale
 
     while(1)
     {
-        if(PIND & (1 << PD4) && fresh_click) // button depressed
+
+        if(PIND & (1 << PD4) && fresh_click) // button is depressed 
         {
-            fresh_click = 0;
-            _delay_ms(250); // This delay controls how long short vs long intepretation
+            fresh_click = 0; // no longer a new click
+
+            _delay_ms(250); // Wait after inital click
             
 
-            if(~PIND & (1 << PD4)) // button no longer depressed
-            {
-                // Set PortB4
-                PORTB = PORTB | (1 << PORTB4); // RED
-                while(!(UCSR0A & (1 << UDRE0))); // Wait until USART Data Register is empty
-                UDR0 = 83; // Send 'S'
-                _delay_ms(200);
-                // unset PORTB4
-                PORTB = PORTB & ~(1 << PORTB4); // RED
-            }
+            if(~PIND & (1 << PD4)) // button no longer depressed == Short button press
+            { 
 
-            if(PIND & (1 << PD4)) // button still pressed
+                PORTB = PORTB | (1 << PORTB4); // Turn on red LED
+
+                while(!(UCSR0A & (1 << UDRE0))); // Wait for UDR empty
+                UDR0 = '.'; // Transmit 'S'
+
+                _delay_ms(200); // let LED shine 
+
+                PORTB = PORTB & ~(1 << PORTB4); // turn LED off
+
+            }
+            else if(PIND & (1 << PD4)) // button still pressed == long button press
             {
-                // Set PortB3
-                PORTB = PORTB | (1 << PORTB3); // BLUE
-                while(!(UCSR0A & (1 << UDRE0))); // Wait until USART Data Register is empty
-                UDR0 = 76; // Send 'L'
-                _delay_ms(200);
-                // unSet PortB3
-                PORTB = PORTB & ~(1 << PORTB3); // BLUE
+                PORTB = PORTB | (1 << PORTB3); // Turn on blue LED
+
+                while(!(UCSR0A & (1 << UDRE0))); // Wait for UDR empty
+                UDR0 = '-'; // Transmit 'L'
+
+                _delay_ms(200); // let LED shine
+
+                PORTB = PORTB & ~(1 << PORTB3); // turn LED off
             }
         }
 
-        if(~PIND & (1 << PD4)) // button no longer depressed
+
+        // Button has either not pressed, 
+        // or input has already been serviced
+
+        if(~PIND & (1 << PD4)) // Button is unpressed
         {
             _delay_ms(50);
-            fresh_click = 1;
+            fresh_click = 1; // Ready to service new click
         }
     }
 
@@ -74,13 +143,7 @@ int main(void)
     
 }
 
-// void serial_write(uint8_t var)
-// {
 
-//     while(!(UCSR0A & (1 << UDRE0))); // Wait until USART Data Register is empty
-//     UDR0 = var;
-//     _delay_ms(50);
-// }
 
 
 
