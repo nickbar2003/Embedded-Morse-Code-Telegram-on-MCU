@@ -346,6 +346,9 @@ char translate_letter(enum morse_translation buffer)
         case SPACE:
             return ' ';
             break;
+        case CLEAR:
+            return '<';
+            break;
         case EMPTY:
             return '#';
             break;

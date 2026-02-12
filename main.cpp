@@ -90,6 +90,10 @@ int main(void)
             morse_message += " | ";
             english_message += serial_data;
         }
+        else if(serial_data == "<")
+        {
+            morse_message += serial_data;
+        }
 
         print_context();
 

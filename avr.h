@@ -41,7 +41,8 @@ enum morse_translation
     X = 0b10001001,
     Y = 0b10001101,
     Z = 0b10000011,
-    SPACE = 0b10001010
+    SPACE = 0b10001010,
+    CLEAR = 0b10001100
 
     // 5 data bits
 
