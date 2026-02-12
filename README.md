@@ -1,5 +1,10 @@
 # EMBEDDED MORSE CODE TELEGRAM ON MCU
 
+# Links
+To view the demo of this project see these links:
+MARK II Telegram: https://www.youtube.com/watch?v=vAx_L8GZ_ts
+MARK I Telegram: https://www.youtube.com/watch?v=e--m6WMfpkY&t=1s
+
 ## Project Intro
 
 For a long time now, I have had an UNO R3 style microcontroller board. I have had really good ideas for projects and a real desire to delve into this subject.
