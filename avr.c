@@ -13,15 +13,10 @@ int main(void)
     Port to hardware correspondance:
     (See Adrunio Uno R3 pinout diagram linked above)
 
-    NAME   | PCB Pin NAME   | Hardware Function
-    --------------------------------------------
-    PORTB4 | Digital Pin 12 | Powering a Red LED
-    ---------------------------------------------
-    PORTB3 | Digital Pin 11 | Powering a Blue LED
-    ---------------------------------------------
-    PORTD4 | Digital Pin 4 | Recieving input from button
     
     */
+
+
 
 
     uint8_t fresh_click = 1; // 1 for fresh, 0 for stale
@@ -29,6 +24,9 @@ int main(void)
     enum morse_translation MCDB = 0b00000000; // Morse Code Data Buffer
     uint8_t data_size_mask = 0b00000000; // Used in tandem with MCDB
     char letter = ' ';
+
+    // uint8_t short_signal = 0b00000000; 
+    // uint8_t long_signal = 0b00000000; 
 
 
     // // //  USART0 CONFIGURATION // // //
@@ -44,43 +42,52 @@ int main(void)
     while(1)
     {
 
-        if(PIND & (1 << PD2)) // Button A clicked
+        // Service for transmission button input //
+
+        if(PIND & (1 << PD5) && fresh_click) // Tx button clicked
         {
-            _delay_ms(200); // Pause to discern length of input
+            fresh_click = 0; // no longer a new click
 
+            _delay_ms(200); // Wait after inital click to discern length
 
-
-            if(PIND & (1 << PD2)) // Long input
+            if(PIND & (1 << PD5)) // Long input
             {
-                while(!(UCSR0A & (1 << UDRE0))); // Wait for UDR empty
 
-                PORTB = PORTB | (1 << PORTB0); 
+                PORTD = PORTD | (1 << PORTD7); // Turn on green LED
 
-                _delay_ms(100); // let LED shine
-
-                PORTB = PORTB & ~(1 << PORTB0); 
-
-                _delay_ms(100); // let LED shine
-
-                PORTB = PORTB | (1 << PORTB0); 
-
-                _delay_ms(100); // let LED shine
-
-                PORTB = PORTB & ~(1 << PORTB0); 
-            }
-            else if (~PIND & (1 << PD2)) // Short input
-            {
-                PORTB = PORTB | (1 << PORTB0); 
-
-                for(int i = 0; i < 400; i++)
+                // Play buzzer tone
+                for(int i = 0; i < 100; i++) 
                 {
-                    PORTB = PORTB | (1 << PORTB1);
-                    _delay_us(250);
-                    PORTB = PORTB & ~(1 << PORTB1);
-                    _delay_us(250);
+                    PORTD = PORTD | (1 << PORTD2);
+                    _delay_us(1000);
+                    PORTD = PORTD & ~(1 << PORTD2);
+                    _delay_us(1000);
                 }
 
-                PORTB = PORTB & ~(1 << PORTB0); 
+                PORTD = PORTD & ~(1 << PORTD7); // Turn off green LED
+
+                while(!(UCSR0A & (1 << UDRE0))); // Wait for UDR empty
+                UDR0 = '<'; // Transmit backspace
+
+                MCDB = 0b00000000; // Wipe buffer
+                data_size_mask = 0b00000000; // Wipe mask
+
+
+            }
+            else if (~PIND & (1 << PD5)) // Short input
+            {
+                PORTD = PORTD | (1 << PORTD7); // Turn on green LED
+
+                // Play buzzer tone
+                for(int i = 0; i < 200; i++)
+                {
+                    PORTD = PORTD | (1 << PORTD2);
+                    _delay_us(500);
+                    PORTD = PORTD & ~(1 << PORTD2);
+                    _delay_us(500);
+                }
+
+                PORTD = PORTD & ~(1 << PORTD7); // Turn off green LED
 
 
                 letter = translate_letter(MCDB);
@@ -94,22 +101,21 @@ int main(void)
 
             }
 
-
-
-
         }
 
 
 
 
-        if(PIND & (1 << PD4) && fresh_click) // button B clicked 
+        // Service for morse button inputs //
+
+        if(PIND & (1 << PB1) && fresh_click) // Morse button clicked
         {
             fresh_click = 0; // no longer a new click
 
             _delay_ms(200); // Wait after inital click to discern length
 
 
-            if(~PIND & (1 << PD4)) // button B no longer depressed == Short button press
+            if(~PIND & (1 << PB1)) // Short (dot) input
             { 
 
 
@@ -122,20 +128,21 @@ int main(void)
                 while(!(UCSR0A & (1 << UDRE0))); // Wait for UDR empty
                 UDR0 = '.'; 
 
-                PORTB = PORTB | (1 << PORTB4); // Turn on red LED
+                PORTB = PORTB | (1 << PORTB5); // Turn on red LED
 
+                // Play buzzer tone
                 for(int i = 0; i < 200; i++)
                 {
-                    PORTB = PORTB | (1 << PORTB1);
+                    PORTD = PORTD | (1 << PORTD2);
                     _delay_us(600);
-                    PORTB = PORTB & ~(1 << PORTB1);
+                    PORTD = PORTD & ~(1 << PORTD2);
                     _delay_us(400);
                 }
 
-                PORTB = PORTB & ~(1 << PORTB4); // turn LED off
+                PORTB = PORTB & ~(1 << PORTB5); // Turn off red LED
 
             }
-            else if(PIND & (1 << PD4)) // button still pressed == long button press
+            else if(PIND & (1 << PB1)) // Long (dash) input
             {
 
 
@@ -151,11 +158,12 @@ int main(void)
 
                 PORTB = PORTB | (1 << PORTB3); // Turn on blue LED
 
+                // Play buzzer tone
                 for(int i = 0; i < 400; i++)
                 {
-                    PORTB = PORTB | (1 << PORTB1);
+                    PORTD = PORTD | (1 << PORTD2);
                     _delay_us(600);
-                    PORTB = PORTB & ~(1 << PORTB1);
+                    PORTD = PORTD & ~(1 << PORTD2);
                     _delay_us(400);
                 }
 
@@ -164,13 +172,13 @@ int main(void)
         }
 
 
-        // If here then:
-        // Button has either not been pressed, 
-        // or input has already been serviced
-        if(~PIND & (1 << PD4)) // Button is unpressed
+        // If here then either:
+        // No button is pressed
+        // or button input has been serviced
+        if(~PIND & (1 << PB1) && ~PIND & (1 << PD5)) // Both buttons have to become unpressed to be renabled
         {
             _delay_ms(10);
-            fresh_click = 1; // Ready to service new click
+            fresh_click = 1; // Renable service for new clicks
         }
     }
 
@@ -233,23 +241,24 @@ void pin_direction_config(void)
     
     // Port Direction Register 0 = input pin; 1 = output pin
 
-    // Set PORTB4 to output
-    DDRB = DDRB | (1 << DDB1);
+    // PORTB5 to output
+    DDRB = DDRB | (1 << DDB5); // Red LED
 
-    // Set PORTB4 to output
-    DDRB = DDRB | (1 << DDB4);
+    // PORTB3 to output
+    DDRB = DDRB | (1 << DDB3); // Blue LED
 
-    // Set PORTB3 to output
-    DDRB = DDRB | (1 << DDB3);
+    // PORTB1 to input
+    DDRB = DDRB & ~(1 << DDB1); // Morse Button
 
-    // Set PORTB3 to output
-    DDRB = DDRB | (1 << DDB0);
+    // PORTD7 to output
+    DDRD = DDRD | (1 << DDD7); // Green LED
 
-    // Set PORTD2 is input by default
-    DDRD = DDRD & ~(1 << DDD2);
+    // PORTB5 to input
+    DDRD = DDRD & ~(1 << DDD5); // Transmit Button
 
-    // Set PORTD4 is input by default
-    DDRD = DDRD & ~(1 << DDD4);
+    // PORTD2 to output
+    DDRD = DDRD | (1 << DDD2); // Passive Buzzer
+
 
 }
 
@@ -307,9 +316,6 @@ char translate_letter(enum morse_translation buffer)
         case P:
             return 'P';
             break;
-        case EMPTY:
-            return '#';
-            break;
     }
     switch(buffer)
     {
@@ -346,7 +352,7 @@ char translate_letter(enum morse_translation buffer)
         case SPACE:
             return ' ';
             break;
-        case CLEAR:
+        case BACKSPACE:
             return '<';
             break;
         case EMPTY:
@@ -359,30 +365,48 @@ void start_up_tune(void)
 {
     for (int i = 0; i < 200; i++)
     {
-        PORTB |=  (1 << PORTB1);
+        PORTD |=  (1 << PORTD2);
         _delay_us(100);
-        PORTB &= ~(1 << PORTB1);
+        PORTD &= ~(1 << PORTD2);
         _delay_us(100);
     }
     for (int i = 0; i < 300; i++)
     {
-        PORTB |=  (1 << PORTB1);
+        PORTD |=  (1 << PORTD2);
         _delay_us(200);
-        PORTB &= ~(1 << PORTB1);
+        PORTD &= ~(1 << PORTD2);
         _delay_us(200);
     }
     for (int i = 0; i < 500; i++)
     {
-        PORTB |=  (1 << PORTB1);
+        PORTD |=  (1 << PORTD2);
         _delay_us(400);
-        PORTB &= ~(1 << PORTB1);
+        PORTD &= ~(1 << PORTD2);
         _delay_us(400);
     }
     for (int i = 0; i < 600; i++)
     {
-        PORTB |=  (1 << PORTB1);
+        PORTD |=  (1 << PORTD2);
         _delay_us(600);
-        PORTB &= ~(1 << PORTB1);
+        PORTD &= ~(1 << PORTD2);
         _delay_us(600);
     }
 }
+
+// Don't need to do it this way
+            // short_signal = 0b00000000; 
+            // long_signal = 0b00000001; 
+
+            // // _delay_ms(200); // Pause to discern length of input
+
+            // for (uint8_t i = 0; i < 4; i++) 
+            // {
+            //     _delay_ms(50); // Pause to discern length of input
+
+            //     if(~PIND & (1 << PD2)) // Short input
+            //     {
+            //         long_signal = long_signal && 0; // Set long false
+            //         short_signal = short_signal || 1; // Set short to true
+            //         break;
+            //     }
+            // }
