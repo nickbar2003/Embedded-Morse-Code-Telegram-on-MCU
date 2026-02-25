@@ -76,6 +76,7 @@ int main(void)
 		serial_data = "";
 		int itr = -1;
 		serialPort.Read(serial_data);
+		int remove_index = -1;
 
 		// Morse code char
 		if(serial_data == "-" || serial_data == ".")
@@ -91,12 +92,19 @@ int main(void)
 		// Space char
 		else if(serial_data == " ")
 		{
-				morse_message += "/";
+				morse_message += " | ";
 				english_message += serial_data;
 		}
 		// Backspace char
 		else if(serial_data == "<")
 		{
+			remove_index = morse_message.find_last_of(' ');
+
+			if(remove_index == std::string::npos)
+			{
+				morse_message = "";
+			}
+
 
 
 		}

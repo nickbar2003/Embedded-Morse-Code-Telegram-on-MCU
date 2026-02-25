@@ -56,12 +56,12 @@ int main(void)
                 PORTD = PORTD | (1 << PORTD7); // Turn on green LED
 
                 // Play buzzer tone
-                for(int i = 0; i < 100; i++) 
+                for(int i = 0; i < 500; i++) 
                 {
                     PORTD = PORTD | (1 << PORTD2);
-                    _delay_us(1000);
+                    _delay_us(200);
                     PORTD = PORTD & ~(1 << PORTD2);
-                    _delay_us(1000);
+                    _delay_us(200);
                 }
 
                 PORTD = PORTD & ~(1 << PORTD7); // Turn off green LED
@@ -108,14 +108,14 @@ int main(void)
 
         // Service for morse button inputs //
 
-        if(PIND & (1 << PB1) && fresh_click) // Morse button clicked
+        if(PINB & (1 << PB1) && fresh_click) // Morse button clicked
         {
             fresh_click = 0; // no longer a new click
 
             _delay_ms(200); // Wait after inital click to discern length
 
 
-            if(~PIND & (1 << PB1)) // Short (dot) input
+            if(~PINB & (1 << PB1)) // Short (dot) input
             { 
 
 
@@ -142,9 +142,8 @@ int main(void)
                 PORTB = PORTB & ~(1 << PORTB5); // Turn off red LED
 
             }
-            else if(PIND & (1 << PB1)) // Long (dash) input
+            else if(PINB & (1 << PB1)) // Long (dash) input
             {
-
 
                 data_size_mask = MCDB; 
                 data_size_mask = data_size_mask >> 5; 
@@ -175,7 +174,7 @@ int main(void)
         // If here then either:
         // No button is pressed
         // or button input has been serviced
-        if(~PIND & (1 << PB1) && ~PIND & (1 << PD5)) // Both buttons have to become unpressed to be renabled
+        if(~PINB & (1 << PB1) && ~PIND & (1 << PD5)) // Both buttons have to become unpressed to be renabled
         {
             _delay_ms(10);
             fresh_click = 1; // Renable service for new clicks
