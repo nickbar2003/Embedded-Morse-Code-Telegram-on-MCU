@@ -76,7 +76,8 @@ int main(void)
 		serial_data = "";
 		int itr = -1;
 		serialPort.Read(serial_data);
-		int remove_index = -1;
+		int last_space = -1;
+		int last_char = -1;
 
 		// Morse code char
 		if(serial_data == "-" || serial_data == ".")
@@ -95,15 +96,42 @@ int main(void)
 				morse_message += " | ";
 				english_message += serial_data;
 		}
+
 		// Backspace char
 		else if(serial_data == "<")
 		{
-			remove_index = morse_message.find_last_of(' ');
 
-			if(remove_index == std::string::npos)
+			// Last index of last space and last character
+			last_space = morse_message.find_last_of(' ');
+			last_char	= morse_message.size() - 1;
+
+
+			if(last_space == std::string::npos) // No space, no complete letter yet
 			{
-				morse_message = "";
+				// Just delete everything
+				morse_message = ""; 
+				english_message = "";
 			}
+			else 
+			{
+
+				if(last_char == last_space) // About to delete an entire letter
+				{
+					morse_message.pop_back();
+					english_message.pop_back(); // Delete english letter
+				}
+
+				// Rediscover last space and char
+				last_space = morse_message.find_last_of(' ');
+				last_char	= morse_message.size() - 1;
+
+				// Delete morse charcters until we get to the end of previous letter
+				for(; last_char > last_space; last_char--)
+				{
+					morse_message.pop_back();
+				}
+			}
+			
 
 
 
