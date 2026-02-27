@@ -4,6 +4,31 @@
 
 #define BAUD 9600 // Bits per second for Tx and Rx
 
+
+// Reference Documentation //
+
+// ATmega328P datasheet: https://ww1.microchip.com/downloads/en/DeviceDoc/Atmel-7810-Automotive-Microcontrollers-ATmega328P_Datasheet.pdf
+// Arduion UNO R3 pinout diagram: https://docs.arduino.cc/resources/pinouts/A000066-full-pinout.pdf
+
+/*
+
+PORT HARDWARE CORRESPONDANCE TABLE (See Adrunio Uno R3 pinout diagram linked above)
+
+| Register Name | PCB Pin Name | Hardware Piece  | Function                                   |
+| ------------- | ------------ | --------------- | ------------------------------------------ |
+| PORTB5        | Pin 13       | Red LED         | Visual feedback for short (dot) input      |
+| PORTB3        | Pin 11       | Blue LED        | Visual feedback for long (dash) input      |
+| PORTB1        | Pin 9        | Morse Button    | Button for inputting morse                 |
+| PORTD7        | Pin 7        | Green Led       | Visual feedback for transmission or delete |
+| PORTD5        | Pin 5        | Transmit Button | Button for transmitting and deleting       |
+| PORTD2        | Pin 2        | Passive Buzzer  | Varying Audio feedback for all inputs      |
+
+
+*/
+
+
+// Enum for defining Morse Code Data Buffer Translation values
+// e.i. What is the equivilant english letter of every MCDB value
 enum morse_translation
 {
     EMPTY = 0b00000000,

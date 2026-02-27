@@ -2,187 +2,197 @@
 // My microcontroller board has an ATmega328P microcontroller //
 // For all w/r operations I am referencing the ATmega328P data sheet // 
 
-// Documentation //
+// Reference Documentation //
+
 // ATmega328P datasheet: https://ww1.microchip.com/downloads/en/DeviceDoc/Atmel-7810-Automotive-Microcontrollers-ATmega328P_Datasheet.pdf
 // Arduion UNO R3 pinout diagram: https://docs.arduino.cc/resources/pinouts/A000066-full-pinout.pdf
 
+/*
+
+PORT HARDWARE CORRESPONDANCE TABLE (See Adrunio Uno R3 pinout diagram linked above)
+
+| Register Name | PCB Pin Name | Hardware Piece  | Function                                   |
+| ------------- | ------------ | --------------- | ------------------------------------------ |
+| PORTB5        | Pin 13       | Red LED         | Visual feedback for short (dot) input      |
+| PORTB3        | Pin 11       | Blue LED        | Visual feedback for long (dash) input      |
+| PORTB1        | Pin 9        | Morse Button    | Button for inputting morse                 |
+| PORTD7        | Pin 7        | Green Led       | Visual feedback for transmission or delete |
+| PORTD5        | Pin 5        | Transmit Button | Button for transmitting and deleting       |
+| PORTD2        | Pin 2        | Passive Buzzer  | Varying Audio feedback for all inputs      |
+
+
+*/
 
 int main(void)
 {
-    /*
-    Port to hardware correspondance:
-    (See Adrunio Uno R3 pinout diagram linked above)
-
-    
-    */
 
 
 
 
-    uint8_t fresh_click = 1; // 1 for fresh, 0 for stale
+  uint8_t fresh_click = 1; // 1 for fresh, 0 for stale
 
-    enum morse_translation MCDB = 0b00000000; // Morse Code Data Buffer
-    uint8_t data_size_mask = 0b00000000; // Used in tandem with MCDB
-    char letter = ' ';
+  enum morse_translation MCDB = 0b00000000; // Morse Code Data Buffer
+  uint8_t data_size_mask = 0b00000000; // Used in tandem with MCDB
+  char letter = ' ';
 
-    // uint8_t short_signal = 0b00000000; 
-    // uint8_t long_signal = 0b00000000; 
-
-
-    // // //  USART0 CONFIGURATION // // //
-    USART_config();
+  // uint8_t short_signal = 0b00000000; 
+  // uint8_t long_signal = 0b00000000; 
 
 
-    // // // PORT DIRECTION CONFIGURATION // // //
-    pin_direction_config();
+  // // //  USART0 CONFIGURATION // // //
+  USART_config();
 
 
-    start_up_tune();
-
-    while(1)
-    {
-
-        // Service for transmission button input //
-
-        if(PIND & (1 << PD5) && fresh_click) // Tx button clicked
-        {
-            fresh_click = 0; // no longer a new click
-
-            _delay_ms(200); // Wait after inital click to discern length
-
-            if(PIND & (1 << PD5)) // Long input
-            {
-
-                PORTD = PORTD | (1 << PORTD7); // Turn on green LED
-
-                // Play buzzer tone
-                for(int i = 0; i < 500; i++) 
-                {
-                    PORTD = PORTD | (1 << PORTD2);
-                    _delay_us(200);
-                    PORTD = PORTD & ~(1 << PORTD2);
-                    _delay_us(200);
-                }
-
-                PORTD = PORTD & ~(1 << PORTD7); // Turn off green LED
-
-                while(!(UCSR0A & (1 << UDRE0))); // Wait for UDR empty
-                UDR0 = '<'; // Transmit backspace
-
-                MCDB = 0b00000000; // Wipe buffer
-                data_size_mask = 0b00000000; // Wipe mask
+  // // // PORT DIRECTION CONFIGURATION // // //
+  pin_direction_config();
 
 
-            }
-            else if (~PIND & (1 << PD5)) // Short input
-            {
-                PORTD = PORTD | (1 << PORTD7); // Turn on green LED
+  start_up_tune();
 
-                // Play buzzer tone
-                for(int i = 0; i < 200; i++)
-                {
-                    PORTD = PORTD | (1 << PORTD2);
-                    _delay_us(500);
-                    PORTD = PORTD & ~(1 << PORTD2);
-                    _delay_us(500);
-                }
+  while(1)
+  {
 
-                PORTD = PORTD & ~(1 << PORTD7); // Turn off green LED
+      // Service for transmission button input //
 
+      if(PIND & (1 << PD5) && fresh_click) // Tx button clicked
+      {
+          fresh_click = 0; // no longer a new click
 
-                letter = translate_letter(MCDB);
+          _delay_ms(200); // Wait after inital click to discern length
 
+          if(PIND & (1 << PD5)) // Long input
+          {
 
-                while(!(UCSR0A & (1 << UDRE0))); // Wait for UDR empty
-                UDR0 = letter; // Transmit English char
+              PORTD = PORTD | (1 << PORTD7); // Turn on green LED
 
-                MCDB = 0b00000000; // Wipe buffer
-                data_size_mask = 0b00000000; // Wipe mask
+              // Play buzzer tone
+              for(int i = 0; i < 500; i++) 
+              {
+                  PORTD = PORTD | (1 << PORTD2);
+                  _delay_us(200);
+                  PORTD = PORTD & ~(1 << PORTD2);
+                  _delay_us(200);
+              }
 
-            }
+              PORTD = PORTD & ~(1 << PORTD7); // Turn off green LED
 
-        }
+              while(!(UCSR0A & (1 << UDRE0))); // Wait for UDR empty
+              UDR0 = '<'; // Transmit backspace
 
-
-
-
-        // Service for morse button inputs //
-
-        if(PINB & (1 << PB1) && fresh_click) // Morse button clicked
-        {
-            fresh_click = 0; // no longer a new click
-
-            _delay_ms(200); // Wait after inital click to discern length
+              MCDB = 0b00000000; // Wipe buffer
+              data_size_mask = 0b00000000; // Wipe mask
 
 
-            if(~PINB & (1 << PB1)) // Short (dot) input
-            { 
+          }
+          else if (~PIND & (1 << PD5)) // Short input
+          {
+              PORTD = PORTD | (1 << PORTD7); // Turn on green LED
+
+              // Play buzzer tone
+              for(int i = 0; i < 200; i++)
+              {
+                  PORTD = PORTD | (1 << PORTD2);
+                  _delay_us(500);
+                  PORTD = PORTD & ~(1 << PORTD2);
+                  _delay_us(500);
+              }
+
+              PORTD = PORTD & ~(1 << PORTD7); // Turn off green LED
 
 
-                data_size_mask = MCDB; 
-                data_size_mask = data_size_mask >> 5; 
-
-                MCDB = MCDB & ~(1 << data_size_mask); 
-                MCDB += 0b00100000;
-
-                while(!(UCSR0A & (1 << UDRE0))); // Wait for UDR empty
-                UDR0 = '.'; 
-
-                PORTB = PORTB | (1 << PORTB5); // Turn on red LED
-
-                // Play buzzer tone
-                for(int i = 0; i < 200; i++)
-                {
-                    PORTD = PORTD | (1 << PORTD2);
-                    _delay_us(600);
-                    PORTD = PORTD & ~(1 << PORTD2);
-                    _delay_us(400);
-                }
-
-                PORTB = PORTB & ~(1 << PORTB5); // Turn off red LED
-
-            }
-            else if(PINB & (1 << PB1)) // Long (dash) input
-            {
-
-                data_size_mask = MCDB; 
-                data_size_mask = data_size_mask >> 5; 
-
-                MCDB = MCDB | (1 << data_size_mask); 
-                MCDB += 0b00100000;
+              letter = translate_letter(MCDB);
 
 
-                while(!(UCSR0A & (1 << UDRE0))); // Wait for UDR empty
-                UDR0 = '-'; 
+              while(!(UCSR0A & (1 << UDRE0))); // Wait for UDR empty
+              UDR0 = letter; // Transmit English char
 
-                PORTB = PORTB | (1 << PORTB3); // Turn on blue LED
+              MCDB = 0b00000000; // Wipe buffer
+              data_size_mask = 0b00000000; // Wipe mask
 
-                // Play buzzer tone
-                for(int i = 0; i < 400; i++)
-                {
-                    PORTD = PORTD | (1 << PORTD2);
-                    _delay_us(600);
-                    PORTD = PORTD & ~(1 << PORTD2);
-                    _delay_us(400);
-                }
+          }
 
-                PORTB = PORTB & ~(1 << PORTB3); // turn LED off
-            }
-        }
+      }
 
 
-        // If here then either:
-        // No button is pressed
-        // or button input has been serviced
-        if(~PINB & (1 << PB1) && ~PIND & (1 << PD5)) // Both buttons have to become unpressed to be renabled
-        {
-            _delay_ms(10);
-            fresh_click = 1; // Renable service for new clicks
-        }
-    }
 
-    return 0;
-    
+
+      // Service for morse button inputs //
+
+      if(PINB & (1 << PB1) && fresh_click) // Morse button clicked
+      {
+          fresh_click = 0; // no longer a new click
+
+          _delay_ms(200); // Wait after inital click to discern length
+
+
+          if(~PINB & (1 << PB1)) // Short (dot) input
+          { 
+
+
+              data_size_mask = MCDB; 
+              data_size_mask = data_size_mask >> 5; 
+
+              MCDB = MCDB & ~(1 << data_size_mask); 
+              MCDB += 0b00100000;
+
+              while(!(UCSR0A & (1 << UDRE0))); // Wait for UDR empty
+              UDR0 = '.'; 
+
+              PORTB = PORTB | (1 << PORTB5); // Turn on red LED
+
+              // Play buzzer tone
+              for(int i = 0; i < 200; i++)
+              {
+                  PORTD = PORTD | (1 << PORTD2);
+                  _delay_us(600);
+                  PORTD = PORTD & ~(1 << PORTD2);
+                  _delay_us(400);
+              }
+
+              PORTB = PORTB & ~(1 << PORTB5); // Turn off red LED
+
+          }
+          else if(PINB & (1 << PB1)) // Long (dash) input
+          {
+
+              data_size_mask = MCDB; 
+              data_size_mask = data_size_mask >> 5; 
+
+              MCDB = MCDB | (1 << data_size_mask); 
+              MCDB += 0b00100000;
+
+
+              while(!(UCSR0A & (1 << UDRE0))); // Wait for UDR empty
+              UDR0 = '-'; 
+
+              PORTB = PORTB | (1 << PORTB3); // Turn on blue LED
+
+              // Play buzzer tone
+              for(int i = 0; i < 400; i++)
+              {
+                  PORTD = PORTD | (1 << PORTD2);
+                  _delay_us(600);
+                  PORTD = PORTD & ~(1 << PORTD2);
+                  _delay_us(400);
+              }
+
+              PORTB = PORTB & ~(1 << PORTB3); // turn LED off
+          }
+      }
+
+
+      // If here then either:
+      // No button is pressed
+      // or button input has been serviced
+      if(~PINB & (1 << PB1) && ~PIND & (1 << PD5)) // Both buttons have to become unpressed to be renabled
+      {
+          _delay_ms(10);
+          fresh_click = 1; // Renable service for new clicks
+      }
+  }
+
+  return 0;
+  
 }
 
 
